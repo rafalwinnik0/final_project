@@ -200,6 +200,8 @@ def update_documents_details(
     verify_user_access_to_project(user, document.project)
     s3_key = f"{document.project_id}/{file.filename}"
     try:
+        if file.filename != document.filename:
+            s3.delete_object(Bucket=bucket_name, Key=document.s3_key)
         s3.upload_fileobj(file.file, bucket_name, s3_key)
         document.filename = file.filename
         document.s3_key = s3_key
