@@ -79,8 +79,8 @@ def update_projects_details(
 
 @app.delete('/project/{id}', status_code=status.HTTP_204_NO_CONTENT)
 def delete_project(
-        id: int, user:
-        User = Depends(get_current_user),
+        id: int,
+        user: User = Depends(get_current_user),
         db: Session = Depends(get_db),
         s3 = Depends(get_s3_client)
 ):
@@ -89,18 +89,19 @@ def delete_project(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     verify_owner_access_to_project(user, project)
     try:
-        with db.begin():
-            for document in project.documents:
-                try:
-                    s3.delete_object(Bucket=bucket_name, Key=document.s3_key)
-                except Exception as e:
-                    print(f"Warning: failed to delete {document.s3_key}: {str(e)}")
-            db.delete(project)
-            return {"message": "Project successfully deleted."}
-    except Exception:
+        for document in project.documents:
+            try:
+                s3.delete_object(Bucket=bucket_name, Key=document.s3_key)
+            except Exception as e:
+                print(f"Warning: failed to delete {document.s3_key}: {str(e)}")
+        db.delete(project)
+        db.commit()
+        return {"message": "Project successfully deleted."}
+    except Exception as e:
+        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Something went wrong while deleting."
+            detail=f"Something went wrong while deleting: {str(e)}"
         )
 
 @app.post("/project/{project_id}/invite", status_code=status.HTTP_200_OK)
