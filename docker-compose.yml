@@ -1,0 +1,18 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: project_db
+    ports: ["5431:5432"]
+  app:
+    build:
+      dockerfile: Dockerfile
+    container_name: myapp
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/project_db
+    ports:
+      - "8000:8000"
